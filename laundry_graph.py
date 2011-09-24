@@ -3,8 +3,8 @@ import urllib2
 import sqlite3
 import os
 
-# SCHEMA:
-# date machine# type status roomID
+DB_NAME = './laundry.db'
+ESUDS_URL = "http://case-asi.esuds.net/RoomStatus/machineStatus.i?bottomLocationId={0}"
 
 # These numbers are assigned to each building by eSuds.
 # We chose a sample of buildings on the campus.
@@ -21,8 +21,8 @@ roomnames = {
 
 }
 
-DB_NAME = './laundry.db'
-
+# SCHEMA:
+# date machine# type status roomID
 
 # if our db doesn't exist, make sure to set up the schema.
 def initializeDB():
@@ -67,7 +67,7 @@ VALUES (NULL,DATETIME('NOW'),?,?,?,?)
 
 
 def getRoomInfo(id):
-    doc = urllib2.urlopen("http://case-asi.esuds.net/RoomStatus/machineStatus.i?bottomLocationId={0}".format(id) ,"").read()
+    doc = urllib2.urlopen(esudsUrl.format(id) ,"").read()
     # TODO: Error checking
 
     soup = BeautifulSoup(doc)
