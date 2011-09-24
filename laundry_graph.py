@@ -1,5 +1,26 @@
 from BeautifulSoup import BeautifulSoup
 import urllib2
+import sqlite3
+import os
+
+# SCHEMA:
+# date machine# type status roomID
+
+DB_NAME = './laundry.db'
+
+# if our db doesn't exist, make sure to set up the schema.
+def initializeDB():
+    conn = sqlite3.connect(DB_NAME)
+    c = conn.cursor()
+    c.execute(
+"""
+CREATE TABLE IF NOT EXISTS machines (id INTEGER PRIMARY KEY,
+date INTEGER, machine_num INTEGER,
+type TEXT, status INTEGER, room_id INTEGER);
+"""
+        )
+    conn.commit()
+    conn.close()
 
 # These numbers are assigned to each building by eSuds.
 # We chose a sample of buildings on the campus.
