@@ -41,7 +41,7 @@ type TEXT, status INTEGER, building_id INTEGER);
     conn.commit()
     conn.close()
 
-def insertRecord(machine_num, type, status, room_id):
+def insertRecord(machine_num, type, status, building_id):
     """
     insert a data point into our database for the given values.
 
@@ -59,10 +59,10 @@ def insertRecord(machine_num, type, status, room_id):
     c = conn.cursor()
     c.execute(
         """
-INSERT INTO datapoints (id, date, machine_num, type, status, room_id)
+INSERT INTO datapoints (id, date, machine_num, type, status, building_id)
 VALUES (NULL,DATETIME('NOW'),?,?,?,?)
 """
-        , (machine_num, type, status, room_id)
+        , (machine_num, type, status, building_id)
         )
     conn.commit()
     conn.close()
@@ -71,7 +71,7 @@ VALUES (NULL,DATETIME('NOW'),?,?,?,?)
 
 def getRoomInfo(id):
     page = urlopen(ESUDS_URL.format(id) ,"")
-    
+
     soup = BeautifulSoup(page.read())
     table = [ #Unpack the table
         [column.contents for column in row.findAll("td")] #Unpack each row.  Some rows have <th> elements.  We filter those out below.
