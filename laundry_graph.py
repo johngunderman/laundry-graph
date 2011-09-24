@@ -1,7 +1,10 @@
 from BeautifulSoup import BeautifulSoup
 import urllib2
+import sqlite3
+import os
 
-esudsUrl = "http://case-asi.esuds.net/RoomStatus/machineStatus.i?bottomLocationId={0}"
+DB_NAME = './laundry.db'
+ESUDS_URL = "http://case-asi.esuds.net/RoomStatus/machineStatus.i?bottomLocationId={0}"
 
 # These numbers are assigned to each building by eSuds.
 # We chose a sample of buildings on the campus.
@@ -17,6 +20,24 @@ roomnames = {
     4193: "Glaser",
 
 }
+
+# SCHEMA:
+# date machine# type status roomID
+
+# if our db doesn't exist, make sure to set up the schema.
+def initializeDB():
+    conn = sqlite3.connect(DB_NAME)
+    c = conn.cursor()
+    c.execute(
+"""
+CREATE TABLE IF NOT EXISTS datapoints (id INTEGER PRIMARY KEY,
+date INTEGER, machine_num INTEGER,
+type TEXT, status INTEGER, room_id INTEGER);
+"""
+        )
+    conn.commit()
+    conn.close()
+
 
 def getRoomInfo(id):
     doc = urllib2.urlopen(esudsUrl.format(id) ,"").read()
