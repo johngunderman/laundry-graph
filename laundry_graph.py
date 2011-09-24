@@ -5,7 +5,7 @@ import sqlite3
 import os
 import time
 
-POLL_INTERVAL = 2 #in seconds
+POLL_INTERVAL = 180 #in seconds
 DB_NAME = './laundry.db'
 ESUDS_URL = "http://case-asi.esuds.net/RoomStatus/machineStatus.i?bottomLocationId={0}"
 
@@ -20,54 +20,70 @@ rooms = {
     1431: "Howe",
     1443: "Village, House 1",
     1448: "Village, House 6",
-    4193: "Glaser",
-
+    4193: "Glaser"
 }
 
-# SCHEMA:
-# date machine# type status roomID
+"""
+statuscodes = {
+    "In Use": 1,
+    "Available": 2,
+    "Unavailable": 3,
+    "Cycle Complete": 4
+}
+"""
 
 # if our db doesn't exist, make sure to set up the schema.
 def initializeDB():
     conn = sqlite3.connect(DB_NAME)
     c = conn.cursor()
     c.execute(
-"""
-CREATE TABLE IF NOT EXISTS datapoints (id INTEGER PRIMARY KEY ASC,
-date INTEGER, machine_num INTEGER,
-type TEXT, status INTEGER, building_id INTEGER);
-"""
-        )
-    conn.commit()
-    conn.close()
-
-def insertRecord(machine_num, type, status, building_id):
-    """
-    insert a data point into our database for the given values.
-
-    Arguments:
-    - `machine_num`: The number of the given washer/dryer (generally 1-4)
-    - `type`: whether or not this machine is a washer or dryer
-    - `status`: what state our washer/dryer is in. Values include:
-               1 - In Use
-               2 - Available
-               3 - Unavailable
-               4 - Cycle Complete
-    - `building_id`: The number corresponding to the given building.
-    """
-    conn = sqlite3.connect(DB_NAME)
-    c = conn.cursor()
-    c.execute(
         """
-INSERT INTO datapoints (id, date, machine_num, type, status, building_id)
-VALUES (NULL,DATETIME('NOW'),?,?,?,?)
-"""
-        , (machine_num, type, status, building_id)
-        )
+        CREATE TABLE IF NOT EXISTS datapoints (
+            id INTEGER PRIMARY KEY ASC,
+            date INTEGER,
+            building_id INTEGER,
+            machine_num INTEGER,
+            type TEXT,
+            status INTEGER
+        );
+        """
+    )
     conn.commit()
     conn.close()
 
+def insertRecords(building, records):
+    def create_insertRecord(cursor):
+        def insertRecord(building_id, machine_num, type, status):
+            """
+            insert a data point into our database for the given values.
 
+            Arguments:
+            - `building_id`: The number corresponding to the given building.
+            - `machine_num`: The number of the given washer/dryer (generally 1-4)
+            - `type`: whether or not this machine is a washer or dryer
+            - `status`: what state our washer/dryer is in. Values include:
+                       1 - In Use
+                       2 - Available
+                       3 - Unavailable
+                       4 - Cycle Complete
+            """
+            cursor.execute(
+                """
+                INSERT INTO datapoints (id, date, building_id, machine_num, type, status) 
+                VALUES (NULL,DATETIME('NOW'),?,?,?,?)
+                """
+                ,
+		(building_id, machine_num, type, status)
+            )
+
+        return insertRecord
+    
+    conn = sqlite3.connect(DB_NAME)
+    insertRecord = create_insertRecord(conn.cursor())
+    for (machine_id, machine_type, status) in records:
+        insertRecord(building, machine_id, machine_type, status)
+    conn.commit()
+    conn.close()
 
 def getRoomInfo(id):
     page = urlopen(ESUDS_URL.format(id) ,"")
@@ -98,8 +114,7 @@ def data_loop():
     errors = []
     for i in rooms:
         try:
-            data[i] = getRoomInfo(i)
-            #TODO: Add to db
+            insertRecords(i, getRoomInfo(i))
             succeeded += 1
         except URLError as e:
             errors.append(e)
@@ -111,10 +126,12 @@ def data_loop():
 
 def main():
     try:
+        initializeDB()
         while(True):
             start = time.time()
             data_loop()
-            time.sleep(POLL_INTERVAL - (time.time() - start)) # Sleep POLL_INTERVAL seconds, but subtract the time taken querying the server
+            sleeptime = POLL_INTERVAL - (time.time() - start) # Sleep POLL_INTERVAL seconds, but subtract the time taken querying the server
+            if(sleeptime > 0): time.sleep(sleeptime)
     except KeyboardInterrupt:
         pass
 
