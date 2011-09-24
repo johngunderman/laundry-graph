@@ -1,6 +1,8 @@
 from BeautifulSoup import BeautifulSoup
 import urllib2
 
+esudsUrl = "http://case-asi.esuds.net/RoomStatus/machineStatus.i?bottomLocationId={0}"
+
 # These numbers are assigned to each building by eSuds.
 # We chose a sample of buildings on the campus.
 roomnames = {
@@ -16,9 +18,8 @@ roomnames = {
 
 }
 
-
 def getRoomInfo(id):
-    doc = urllib2.urlopen("http://case-asi.esuds.net/RoomStatus/machineStatus.i?bottomLocationId={0}".format(id) ,"").read()
+    doc = urllib2.urlopen(esudsUrl.format(id) ,"").read()
     # TODO: Error checking
 
     soup = BeautifulSoup(doc)
