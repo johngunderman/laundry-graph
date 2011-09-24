@@ -30,13 +30,40 @@ def initializeDB():
     c = conn.cursor()
     c.execute(
 """
-CREATE TABLE IF NOT EXISTS datapoints (id INTEGER PRIMARY KEY,
+CREATE TABLE IF NOT EXISTS datapoints (id INTEGER PRIMARY KEY ASC,
 date INTEGER, machine_num INTEGER,
-type TEXT, status INTEGER, room_id INTEGER);
+type TEXT, status INTEGER, building_id INTEGER);
 """
         )
     conn.commit()
     conn.close()
+
+def insertRecord(machine_num, type, status, room_id):
+    """
+    insert a data point into our database for the given values.
+
+    Arguments:
+    - `machine_num`: The number of the given washer/dryer (generally 1-4)
+    - `type`: whether or not this machine is a washer or dryer
+    - `status`: what state our washer/dryer is in. Values include:
+               1 - In Use
+               2 - Available
+               3 - Unavailable
+               4 - Cycle Complete
+    - `building_id`: The number corresponding to the given building.
+    """
+    conn = sqlite3.connect(DB_NAME)
+    c = conn.cursor()
+    c.execute(
+        """
+INSERT INTO datapoints (id, date, machine_num, type, status, room_id)
+VALUES (NULL,DATETIME('NOW'),?,?,?,?)
+"""
+        , (machine_num, type, status, room_id)
+        )
+    conn.commit()
+    conn.close()
+
 
 
 def getRoomInfo(id):
