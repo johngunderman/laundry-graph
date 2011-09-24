@@ -30,7 +30,7 @@ def initializeDB():
     c = conn.cursor()
     c.execute(
 """
-CREATE TABLE IF NOT EXISTS machines (id INTEGER PRIMARY KEY,
+CREATE TABLE IF NOT EXISTS datapoints (id INTEGER PRIMARY KEY,
 date INTEGER, machine_num INTEGER,
 type TEXT, status INTEGER, room_id INTEGER);
 """
