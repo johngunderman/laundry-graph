@@ -1,14 +1,17 @@
+#!/usr/bin/python2.7
 from BeautifulSoup import BeautifulSoup
-import urllib2
+from urllib2 import urlopen, URLError
 import sqlite3
 import os
+import time
 
+POLL_INTERVAL = 2 #in seconds
 DB_NAME = './laundry.db'
 ESUDS_URL = "http://case-asi.esuds.net/RoomStatus/machineStatus.i?bottomLocationId={0}"
 
 # These numbers are assigned to each building by eSuds.
 # We chose a sample of buildings on the campus.
-roomnames = {
+rooms = {
     1398: "Clarke Tower",
     1403: "Hitchcock",
     1407: "Pierce",
@@ -40,10 +43,9 @@ type TEXT, status INTEGER, room_id INTEGER);
 
 
 def getRoomInfo(id):
-    doc = urllib2.urlopen(esudsUrl.format(id) ,"").read()
-    # TODO: Error checking
-
-    soup = BeautifulSoup(doc)
+    page = urlopen(ESUDS_URL.format(id) ,"")
+    
+    soup = BeautifulSoup(page.read())
     table = [ #Unpack the table
         [column.contents for column in row.findAll("td")] #Unpack each row.  Some rows have <th> elements.  We filter those out below.
         for row
@@ -62,3 +64,32 @@ def getRoomInfo(id):
         in table
     ]
     return table
+
+def data_loop():
+    data = {}
+    succeeded = 0
+    errors = []
+    for i in rooms:
+        try:
+            data[i] = getRoomInfo(i)
+            #TODO: Add to db
+            succeeded += 1
+        except URLError as e:
+            errors.append(e)
+    print("{0} requests succeeded, {1} errors".format(succeeded, len(errors)))
+    if len(errors) > 0:
+	for e in errors:
+            print("\t{0}".format(e))
+	print
+
+def main():
+    try:
+        while(True):
+            start = time.time()
+            data_loop()
+            time.sleep(POLL_INTERVAL - (time.time() - start)) # Sleep POLL_INTERVAL seconds, but subtract the time taken querying the server
+    except KeyboardInterrupt:
+        pass
+
+if __name__ == "__main__":
+    main()
